@@ -1,0 +1,97 @@
+{% extends 'TAHiring/base.html' %}
+{% load generate_availability_table %}
+
+{# Has context 
+   {{sidenote}}  - side instruction
+   {{form}} - the form
+   {{next}} - url reverser for next page
+   {{prev}} - url reverser for previous page
+   {{header}} - String describing the form
+   been selected already
+#}
+
+{% block title %}
+    <title>Application Form - MCS Utilities</title>
+{% endblock %}
+
+{% block content %}
+
+    <h2> {{header}} </h2>
+
+    <div id="loader-modal" class="mymodal">
+        <div class="mymodal-loader">
+            <div class="loader"></div>
+        </div>
+    </div>
+
+    <div id="weekly-schedule">
+        {% availability_table request.session.availability %}
+    </div>
+
+    <div>
+        <button class="btn btn-default" name="{{prev}}">Back</button>
+        <button class="btn btn-default" name="{{next}}">Submit Application</button>
+    </div>
+
+{% endblock %}
+
+{% block script %}
+    <script>
+        $(document).ready( function() {
+        var isMouseDown = false,
+            isHighlighted;
+        // The following allows users to drag the mouse to highlight
+        // availability
+        $("#availability td.selectable")
+            .mousedown(function () {
+                isMouseDown = true;
+                $(this).toggleClass("highlighted");
+                isHighlighted = $(this).hasClass("highlighted");
+                return false; // prevent text selection
+            })
+            .mouseover(function () {
+                if (isMouseDown) {
+                    $(this).toggleClass("highlighted",
+                    isHighlighted);
+                }
+            })
+            .bind("selectstart", function () {
+                return false;
+            })
+
+            $(document).mouseup(function () {
+                isMouseDown = false;
+            });
+
+            // In either case, if a button is clicked we submit the current data
+            // as POST. 
+            $('button').click( function() {
+                // Get the highlighted data
+                selected = [];
+                nextPage = $(this).attr('name');
+                $('.highlighted').each( function() {
+                    selected.push($(this).attr('data-id'));
+                });
+                $.ajax({
+                    url: "{% url 'application_form_availability' %}",
+                    method: 'POST',
+                    data:{
+                        highlighted: selected, 
+                        nextPage: nextPage,
+                        csrfmiddlewaretoken: "{{ csrf_token }}",
+                    },
+                    dataType: "text",
+                    beforeSend: function() {
+                        $('#loader-modal').css('display', 'block');
+                    },
+                    complete: function() {
+                        $('#loader-modal').css('display', 'none');
+                    }
+                })
+                    .success( function( data ) {
+                        window.location.href = data;
+                    });
+            });
+        });
+    </script>
+{% endblock %}

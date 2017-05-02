@@ -1,0 +1,28 @@
+<table id='availability'>
+    <thead class='availability-head'>
+        <tr>
+            <th></th>
+            <th>Monday</th>
+            <th>Tuesday</th>
+            <th>Wednesday</th>
+            <th>Thursday</th>
+            <th>Friday</th>
+        </tr>
+    </thead>
+    <tbody> 
+        {% for time in times %}
+            <tr>
+                <td class='time-label'>{{time}} </td>
+            {% for day in days %}
+                {% with day|add:time as timeslot %}
+                {% if timeslot in selected %}
+                    <td class = 'selectable highlighted' data-id="{{timeslot}}"></td>
+                {% else %}
+                    <td class = 'selectable' data-id="{{timeslot}}"></td>
+                {% endif %}
+                {% endwith %}
+            {% endfor %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

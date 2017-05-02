@@ -1,0 +1,76 @@
+{% extends 'TAHiring/base.html' %}
+
+{# Has context 
+   {{sidenote}}  - side instruction
+   {{form}} - the form
+   {{next}} - url reverser for next page
+   {{prev}} - url reverser for previous page
+   {{header}} - String describing the form
+#}
+
+{% block title %}
+<title>Application Form - MCS Utilities</title>
+{% endblock %}
+
+{% block content %}
+
+<h2> {{header}} </h2>
+
+<div class="application-form" >
+    {% if form.is_multipart %}
+        <form method="POST" enctype="multipart/form-data" id="app-form">
+    {% else %}
+        <form method="POST" id="app-form" >
+    {% endif %}
+    {% csrf_token %}
+        <table class="form-table">
+            {% for field in form %}
+            <tr>
+                {{field.errors}}
+                <td> {{ field.label_tag }} </td>
+                <td> {{ field }} <br>
+                {% if field.help_text %}
+                <p> {{field.help_text|safe }} </p>
+                {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+            <input id="nextPage" type="hidden" name="nextPage" value="{{next}}">
+
+        {% if past %}
+            <input class="btn btn-default" type="submit" value="Back" name="Next"/>
+        {% endif %}
+        {% if next %}
+            <input class="btn btn-default" type="submit" value="Next" name="Next"/>
+        {% endif %}
+    </form>
+</div>
+
+{% endblock %}
+
+{% block sidenote %}
+    <div class="sidenote">
+        {{sidenote | safe}}
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        $(document).ready( function() {
+            $('option').mousedown(function(e) {
+                e.preventDefault();
+                $(this).prop('selected', !$(this).prop('selected'));
+                return false;
+            });
+
+            $('input[type=submit]').click( function(event) {
+                direction = $(this).val();
+                if (direction == "Back") {
+                    $('#nextPage').val("{{past}}");
+                }
+            });
+        });
+    </script>
+{% endblock %}

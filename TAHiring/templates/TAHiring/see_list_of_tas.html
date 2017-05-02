@@ -1,0 +1,56 @@
+{% extends 'TAHiring/base.html' %}
+{% load generate_availability_table %}
+{% load render_table from django_tables2 %}
+
+{# Has context 
+    table - (TA_List_Table) item, rendered with django_tables2
+    list_of_tas  - list of (TAData) items. Used to store as much information as
+    possible clientside, while schedules are retrieved by ajax
+#}
+
+{% block title %}
+    <title>List of TAs - MCS Utilities</title>
+{% endblock %}
+
+{% block content %}
+    <h2>List of TA Applicants</h2>
+
+    <div>
+        {% render_table table %}
+    </div>
+
+    {% for ta in list_of_tas %}
+        <div id="loader-modal" class="mymodal" data-target={{ta.pk}}>
+            <div class="mymodal-content">
+                <table class="ta-info-modal ta-info-modal-left">
+                    <tr> <td class="ta-info-label">First Name:   </td> <td class="ta-info-data">{{ta.first_name}}</td></tr>
+                    <tr> <td class="ta-info-label">Last Name:    </td> <td class="ta-info-data">{{ta.last_name}}</td></tr>
+                    <tr> <td class="ta-info-label">Education:    </td> <td class="ta-info-data">{{ta.education}}</td></tr>
+                    <tr> <td class="ta-info-label">Phone Number: </td> <td class="ta-info-data">{{ta.phone}}</td></tr>
+                    <tr> <td class="ta-info-label">Email :       </td> <td class="ta-info-data"><small>{{ta.email}}<small></td></tr>
+                </table>
+                <table class="ta-info-modal ta-info-modal-right">
+                    <tr> 
+                        <td class="ta-info-label">Previous Courses: </td> 
+                        <td class="ta-info-data">{{ta.prev_courses}}</td></tr>
+                    <tr> 
+                        <td class="ta-info-label">Other Experience: </td> 
+                        <td class="ta-info-data">{{ta.other_exp}}</td></tr>
+                    <tr> 
+                        <td class="ta-info-label">Tutorials Wanted: </td> 
+                        <td class="ta-info-data">{{ta.num_tut_int}}</td></tr>
+                    <tr> 
+                        <td class="ta-info-label">Will TA Multiple: </td> 
+                        <td class="ta-info-data">{{ta.multi_class}}</td></tr>
+                    <tr> 
+                        <td class="ta-info-label">Will TA Summer:   </td> 
+                        <td class="ta-info-data">{{ta.summer_ta}}</td></tr>
+                </table>
+
+                <div class="modal-schedule" data-id={{ta.pk}} data-state="empty">
+                    <div class="loader"></div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% endblock %}

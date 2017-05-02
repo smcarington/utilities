@@ -1,0 +1,118 @@
+body {
+    background: url("/static/bg_oceanic.png");
+}
+
+
+/* Availability Table */
+
+#availability td.selectable {
+    min-width: 100px;
+    height: 30px;
+    border: 1px solid #fff;
+}
+
+.time-label {
+    background-color: #fff;
+    width:20px;
+}
+
+th {
+    text-align: center;
+}
+
+#availability tr:nth-child(even) {
+    background: #d9d9d9;
+}
+
+#availability tr:nth-child(odd) {
+    background: #fff;
+}
+
+table td.highlighted {
+    background-color: #999;
+}
+
+/*Loader for ajax sumbit */
+.loader {
+        border: 16px solid #f3f3f3; /* Light grey */
+        border-top: 16px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Modal */
+.mymodal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.mymodal-loader {
+    background-color: transparent;
+    margin: 25% 25%; /* 15% from the top and centered */
+    padding: 20px;
+    width: 80%; /* Could be more or less, depending on screen size */
+}
+
+.mymodal-content {
+    background-color: #fff;
+    margin: 10% 10%; /* 15% from the top and centered */
+    padding: 20px;
+    width: 60%; /* Could be more or less, depending on screen size */
+}
+
+    /* TA Info Modal */
+    table.ta-info-modal-left {
+        float: left;
+        margin-bottom: 20px;
+    }
+
+    table.ta-info-modal-right {
+        float: right;
+        margin-bottom: 20px;
+    }
+
+    table.ta-info-modal td {
+        padding: 0px 5px;
+        word-break: break-word;
+    }
+
+    table.ta-info-modal td.ta-info-label {
+        font-weight: bold;
+        width:140px;
+    }
+
+    td.ta-info-data {
+        width:200px;
+    }
+
+/* The Close Button */
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
