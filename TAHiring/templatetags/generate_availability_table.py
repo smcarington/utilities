@@ -1,4 +1,7 @@
 from django import template
+from django.conf import settings
+from TAHiring.models import *
+
 import TAHiring.helper_functions as hf
 
 
@@ -23,6 +26,92 @@ def availability_table(selected):
             'selected': selected,
     }
 
+@register.inclusion_tag('TAHiring/course_tutorial_schedule.html')
+def generate_course_review_table(course, tutorials, tas):
+    """ Creates the table of tutorials.
+    """
+
+    DAYS, HOURS = hf.generate_days_and_time()
+
+    return {
+            'times'   : HOURS,
+            'days'    : DAYS,
+            'tutorials': tutorials,
+            'tas' : tas,
+    }
+
+@register.simple_tag
+def html_for_ta_output(tas):
+    """ Returns different html output depending on the number of tas which can
+        occupy the tutorial.
+    """
+
+    if len(tas) == 1:
+        ret_str = "1 available TA "
+    else:
+        ret_str = "{} available TAs".format(len(tas))
+
+    return ret_str
+
+@register.inclusion_tag('TAHiring/generate_course_review_table_td.html')
+def generate_course_review_table_td(ts_string, tut_list, tas):
+    """ Generated td specific entry for course_review_table.
+    """
+    # There are several things we need to check. 
+    # 1. Is there a tutorial during the given timeslot? If so, how many. Show
+    #    this information
+    # 2. Are those tutorials filled? If so, color them differently
+    # 3. The overlay (to be toggled by js) showing the number of TAs compatible
+    #    with that tutorial
+    # 4. The modal overlay with that information
+    #  
+    # We want to handle as much as the logic here rather than the template,
+    # which is harder to do
+    
+    has_tutorial  = False
+    num_tutorials = 0
+    is_filled     = False
+    is_first      = False
+    is_last       = False
+    num_tas       = None
+
+    # Is there a tutorial during this time?
+    tut_ts_strings = [tut.timeslot.to_string() for tut in tut_list]
+    if ts_string in tut_ts_strings:
+        has_tutorial = True
+        num_tutorials = tut_ts_strings.count(ts_string)
+
+        # Now convert ts_string to timeslot, so we can work in the other
+        # direction
+        timeslot = TimeSlot.objects.get_timeslot_by_string(ts_string)
+
+        dow = ts_string[0]
+        tod = ts_string[1:]
+        tuts=tut_list.filter(
+                timeslot__day_of_week = settings.DOW_DICTIONARY[dow],
+                timeslot__time_of_day = tod
+        )
+
+        for tut in tuts:
+            if tut.ta:
+                is_filled=ta
+            if tut.is_first:
+                is_first = tut
+            if tut.is_last:
+                is_last  = tut
+
+        # Cheating, but assuming all the same
+        num_tas=tuts[0].get_ta_in_list(tas)
+
+    return {
+            'ts_string'    : ts_string,
+            'has_tutorial' : has_tutorial,
+            'num_tutorials': num_tutorials,
+            'is_filled'    : is_filled,
+            'is_first'     : is_first,     
+            'is_last'      : is_last,     
+            'num_tas'      : num_tas,     
+    }
 
 @register.filter
 def is_selected(selected, dow, tod):

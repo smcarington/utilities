@@ -1,0 +1,27 @@
+{% load generate_availability_table %}
+<td data-id = "{{ts_string}}" class="
+        {% if has_tutorial %}tutorial 
+            {% if is_filled %}
+                tutorial-filled 
+            {% else %}
+                tutorial-unfilled 
+            {% endif %}
+            {% if is_first %}
+                tutorial-first 
+            {% elif is_last %}
+                tutorial-last 
+            {% endif %} 
+        {% endif %}">
+    {% if has_tutorial %}
+        {% if is_first %}
+            <div class="tutorial-ta-popup">
+                {% for ta in num_tas %}
+                    <span class="tutorial-ta-popup-text"> {{ta.first_name}} {{ta.last_name}}</span>
+                {% endfor %}
+            </div>
+            <p>{% html_for_ta_output num_tas %}</p>
+        {% elif is_last %}
+            <p>{{num_tutorials}} Tutorials</p>
+        {% endif %}
+    {% endif %}
+</td>

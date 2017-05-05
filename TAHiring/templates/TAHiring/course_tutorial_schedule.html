@@ -1,0 +1,28 @@
+{% load generate_availability_table %}
+
+<table id='course_tutorials'>
+    <thead class='course-head'>
+        <tr>
+            <th class=></th>
+            <th class="course-dow-head">Monday</th>
+            <th class="course-dow-head">Tuesday</th>
+            <th class="course-dow-head">Wednesday</th>
+            <th class="course-dow-head">Thursday</th>
+            <th class="course-dow-head">Friday</th>
+        </tr>
+    </thead>
+    <tbody> 
+        {% for time in times %}
+            <tr>
+                <td class='time-label'>{{time}} </td>
+                {% for day in days %}
+                {% with day|add:time as timeslot %}
+                    {# Which tutorials occur in this timeslot? #}
+                    {% generate_course_review_table_td timeslot tutorials tas %}
+                    {% endwith %}
+                {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

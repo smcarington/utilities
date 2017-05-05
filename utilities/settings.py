@@ -126,3 +126,12 @@ STATIC_URL = '/static/'
 TIME_INTERVAL= 30 # Number of minutes between 
 SITE_NAME   = 'MCS Utilities'
 URL_PREPEND = ''
+DOW_DICTIONARY = {
+    'M': 0,
+    'T': 1,
+    'W': 2,
+    'R': 3,
+    'F': 4,
+    'S': 5,
+    'U': 6,
+}

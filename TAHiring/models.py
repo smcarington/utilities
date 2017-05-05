@@ -189,6 +189,9 @@ class TimeSlot(models.Model):
             tod = self.time_of_day
         )
 
+    class Meta:
+        ordering = ['day_of_week', 'time_of_day']
+
 class TAAvailability(models.Model):
     """ Inherits TimeSlot. Tracks TA availability. One row per opening
     """
@@ -203,6 +206,7 @@ class TAAvailability(models.Model):
     class Meta:
         verbose_name = "TA Availability"
         verbose_name_plural = "TA Availabilities"
+        ordering = ['ta', 'timeslot']
 
     def __str__(self):
         return "{ln},{fn}: {ts}".format(
@@ -241,6 +245,30 @@ class TACourseInterest(models.Model):
                 course = self.course.course_code
         )
 
+class CourseTutorialManager(models.Manager):
+    """ Adds custom manager functions to the Course_Tutorial model
+    """
+
+    def get_tutorials_by_string(self,ts_string):
+        """ Gets the current time slot using the given string. Currently only
+            works with %H%M format. Should be of form M0930
+        """
+        DOW_DICTIONARY = {
+            'M': 0,
+            'T': 1,
+            'W': 2,
+            'R': 3,
+            'F': 4,
+            'S': 5,
+            'U': 6,
+        }
+        dow = ts_string[0]
+        tod = ts_string[1:]
+
+        return super().get_queryset().filter(
+                time_slot__day_of_week = DOW_DICTIONARY[dow],
+                time_slot__time_of_day = tod)
+
 class Course_Tutorial(models.Model):
     """ Tracks tutorials for a course. One row per tutorial. Has a foreign key
         relationship to Course
@@ -248,13 +276,78 @@ class Course_Tutorial(models.Model):
     name     = models.CharField(max_length=4) # 0104, will assume TUT prefix
     course   = models.ForeignKey(Course, related_name="tutorials")
     timeslot = models.ForeignKey(TimeSlot, related_name="tutorials")
-    ta       = models.ForeignKey(TAData, related_name="tutorials", null=True)
+    # Tutorials have several time slots. The following keeps track of which
+    # tutorial is first and which is last
+    is_first = models.BooleanField(default=False)
+    is_last  = models.BooleanField(default=False)
+    ta       = models.ForeignKey(TAData, 
+            related_name="tutorials", 
+            null=True,
+            blank=True)
+    objects = CourseTutorialManager()
+
+    # Since a single tutorial will typically have multiple associate timeslots,
+    # the next two methods determine if that timeslot is the first or last. This
+    # is so that they can be given css-appropriate class names
+    def set_first_and_last(self):
+        all_tutorials = Course_Tutorial.objects.filter(
+                name = self.name,
+                course = self.course
+        ).order_by('timeslot')
+
+        self.is_first = (self == all_tutorials[0])
+        self.is_last  = (self == all_tutorials.reverse()[0])
+        self.save()
+
+    def is_timeslot_string(self, ts_string):
+        """ Given ts_string (such as M0930), check if that agrees with the
+        timeslot element given"""
+        return self.timeslot.to_string() == ts_string
+
+    def is_filled(self):
+        """ Checks if a TA has been assigned to this slot. 
+        """
+        return self.ta
+
+    def get_ta_in_list(self, ta_list = None):
+        """ Returns the TAs which are compatible with this TA section. Takes a
+        queryset ta_list to obviate another db call, but this is optional"""
+        # Note that it is not sufficient to just compare against this timeslot:
+        # We need to see that a TA matches all timeslots.
+
+        # Get the related tutorials for total comparison
+        related_tuts = Course_Tutorial.objects.select_related('timeslot').filter(
+                name = self.name,
+                course = self.course
+        ).order_by('timeslot')
+
+        # Get the timeslots from the related tutorials. NTS: If this doesn't
+        # work, call to_string on everything and do array comparison
+        timeslots = [tut.timeslot for tut in related_tuts]
+        
+        if not ta_list:
+            ta_list = TAData.objects.prefetch_related('availability__timeslot').all()
+
+        compatible_tas = []
+        for ta in ta_list:
+            # Get the ta's availability and check to see if timeslots is a
+            # subset. Again, if this doesn't work on querysets, call to_string
+            # on everything
+            availability = [avail.timeslot for avail in ta.availability.all()]
+            if set(timeslots).issubset(availability):
+                compatible_tas.append(ta)
+
+        # NTS. May need to make this html friendly, depending on how it's called
+        # in course_tutorial_schedule.html template
+        return compatible_tas
 
     class Meta:
         verbose_name = "Tutorial"
+        ordering = ['timeslot']
 
     def __str__(self):
-        return "{course}: TUT{name}".format(
+        return "{course}: TUT{name} at {time}".format(
             course = self.course.course_code,
-            name = self.name
+            name = self.name,
+            time = self.timeslot.to_string()
         )

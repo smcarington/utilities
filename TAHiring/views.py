@@ -192,6 +192,7 @@ def application_complete(request):
 
 # -------- Application Review (Start) -------- #
 
+# NEED TO ADD STAFF PRIVILEGES
 def review_applicants(request, tapk = None):
     """ See the list of applicants. Uses Ajax to load 
     """
@@ -225,5 +226,20 @@ def review_applicants(request, tapk = None):
                 }
         )
 
-        
+# NEED TO ADD STAFF PRIVILEGES
+def review_course(request, course_pk):
+    """ View to examine the tutorials for a particular course. 
+    """
+    course = Course.objects.get(pk=course_pk)
+    list_of_tutorials = Course_Tutorial.objects.select_related(
+            'timeslot').filter(course = course)
+    list_of_tas = TAData.objects.prefetch_related('availability__timeslot').all()
 
+    return render(request,
+            'TAHiring/review_course.html',
+            {
+                'course': course,
+                'list_of_tutorials': list_of_tutorials,
+                'list_of_tas': list_of_tas,
+            }
+    )

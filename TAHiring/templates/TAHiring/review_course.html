@@ -1,0 +1,44 @@
+{% extends 'TAHiring/base.html' %}
+{% load generate_availability_table %}
+
+{% comment %}
+    course - (Course) the current course model
+    list_of_tutorials (CourseTutorial) 
+    list_of_tas (TAData)
+{% endcomment %}
+
+{% block content %}
+
+    <h2> {{course.course_code}}</h2>
+
+    {{ course.course_code }}
+    {{ list_of_tutorials }}
+    {{ list_of_tas }}
+
+    {% generate_course_review_table course list_of_tutorials list_of_tas %}
+
+{% endblock %}
+
+{% block script %}
+    <script>
+        $(document).ready( function() {
+            // Show popups when a tutorial is clicked
+            $('.tutorial').click(function () {
+                dataid = $(this).attr('data-id');
+                if ($(this).hasClass('tutorial-first')) {
+                    $popup = $(this).children('.tutorial-ta-popup');
+                    if ($popup.css('display') == 'none') {
+                        $popup.css('display', 'block');
+                    } else {
+                        $popup.css('display', 'none');
+                    }
+                } else {
+                    //Trigger a click on the space above
+                    var $tr = $(this).parent();
+                    var col = $tr.children().index($(this));
+                    $tr.prev().children().eq(col).trigger('click');
+                }
+            });
+        });
+    </script>
+{% endblock %}

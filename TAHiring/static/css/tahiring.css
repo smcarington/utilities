@@ -116,3 +116,88 @@ table td.highlighted {
     cursor: pointer;
 }
 
+/* Tutorial Rendering */
+.course-dow-head {
+    width: 20%;
+    text-align: center;
+}
+
+#course_tutorials {
+    table-layout: fixed;
+    height: 100%;
+}
+
+#course_tutorials tr:nth-child(even) {
+    background: #d9d9d9;
+}
+
+#course_tutorials td {
+    height: 30px;
+    position: relative;
+    border-left: 1px solid #e6e6e6;
+    border-right: 1px solid #e6e6e6;
+}
+
+.tutorial {
+    text-align: center;
+}
+
+.tutorial-filled {
+    background-color: #6699ff;
+}
+
+.tutorial-unfilled {
+    background-color: #ff4d4d;
+}
+
+.tutorial-first {
+    border-radius: 15px 15px 0px 0px;
+}
+
+.tutorial-middle {
+}
+
+.tutorial-last {
+    border-radius: 0px 0px 15px 15px;
+}
+
+.tutorial-ta-overlay {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    z-index: 1;
+    width: 100%;
+    height: 200%;
+    background-color: rgba(0,0,0,0.2); /* Black w/ opacity */
+}
+
+.tutorial-ta-popup {
+    position: relative;
+    display: none;
+    cursor: pointer;
+    user-select: none;
+}
+
+.tutorial-ta-popup-text {
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -80px;
+}
+
+.tutorial-ta-popup .tutorial-ta-popup-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
