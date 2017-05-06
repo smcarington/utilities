@@ -13,4 +13,5 @@ urlpatterns = [
     url(r'^ta_application/review/$', views.review_applicants, name='review_applicants'),
     url(r'^ta_application/review/(?P<tapk>\d+)$', views.review_applicants, name='review_applicants'),
     url(r'^ta_application/review/course/(?P<course_pk>\d+)$', views.review_course, name='review_course'),
+    url(r'^ta_application/assign_ta/$', views.assign_ta_to_tutorial, name='assign_ta'),
 ]

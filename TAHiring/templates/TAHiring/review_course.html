@@ -11,21 +11,32 @@
 
     <h2> {{course.course_code}}</h2>
 
-    {{ course.course_code }}
-    {{ list_of_tutorials }}
-    {{ list_of_tas }}
+    <div id="loader-modal" class="mymodal">
+        <div class="mymodal-loader">
+            <div class="loader"></div>
+        </div>
+    </div>
 
     {% generate_course_review_table course list_of_tutorials list_of_tas %}
+
+    <button id="toggleTAs" class="btn btn-default right">Toggle TAs</button>
 
 {% endblock %}
 
 {% block script %}
     <script>
         $(document).ready( function() {
+            // Keeps track of whether to toggle TAs on or off. Initially off.
+            var toggleOn = false;
             // Show popups when a tutorial is clicked
-            $('.tutorial').click(function () {
+            $('.tutorial').click(function (event) {
                 dataid = $(this).attr('data-id');
-                if ($(this).hasClass('tutorial-first')) {
+                // Do nothing if we clicked the popup itself
+                if ($(event.target).parent().hasClass('tutorial-ta-popup-text')
+                    || $(event.target).parent().hasClass('tutorial-ta-popup')){
+                    return false;
+                }
+                else if ($(this).hasClass('tutorial-first')) {
                     $popup = $(this).children('.tutorial-ta-popup');
                     if ($popup.css('display') == 'none') {
                         $popup.css('display', 'block');
@@ -38,6 +49,36 @@
                     var col = $tr.children().index($(this));
                     $tr.prev().children().eq(col).trigger('click');
                 }
+            });
+
+            $('#toggleTAs').click( function() {
+                toggleOn =!toggleOn;
+                displayState = (toggleOn ? 'block' : 'none');
+                $('.tutorial-ta-popup').css('display', displayState);
+            });
+
+            // The AJAX for assigning a TA
+            $(".submit-tas").click( function() {
+                ta_pk = $(this).attr('data-ta');
+                tut_pks = $(this).attr('data-tut');
+                $.ajax({
+                    url: "{% url 'assign_ta' %}",
+                    method: "POST",
+                    data: { ta_pk: ta_pk,
+                            tut_pks: tut_pks,
+                            csrfmiddlewaretoken: "{{ csrf_token }}",
+                          },
+                    dataType: "text",
+                    beforeSend: function() {
+                        $('#loader-modal').css('display', 'block');
+                    },
+                    complete: function() {
+                        $('#loader-modal').css('display', 'none');
+                    },
+                })
+                .success( function() {
+                    window.location.reload();
+                });
             });
         });
     </script>

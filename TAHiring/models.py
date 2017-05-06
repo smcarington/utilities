@@ -97,6 +97,40 @@ class TAData(models.Model):
 
         return time_as_str
 
+    def tutorials_as_string(self):
+        tuts = self.tutorials.all()
+
+        if tuts:
+            course_codes = (tuts
+                    .values_list(
+                        'course__course_code',
+                        flat=True
+                    )
+            )
+            course_codes = list(set(course_codes))
+
+            ret_str = ""
+            course_template = "{cc}: {thelist}"
+
+            for course in course_codes:
+                course_tuts = (tuts
+                        .filter(course__course_code=course )
+                        .values_list(
+                            'name', 
+                            flat=True
+                        )
+                    )
+                course_tuts = list(set(course_tuts))
+                course_list = ",".join(course_tuts)
+                ret_str += course_template.format(
+                    cc=course, 
+                    thelist = course_list
+                )
+        else:
+            ret_str = "No Tutorials"
+
+        return ret_str
+
     class Meta:
         verbose_name = "TA Information"
         verbose_name_plural = verbose_name
@@ -340,6 +374,17 @@ class Course_Tutorial(models.Model):
         # NTS. May need to make this html friendly, depending on how it's called
         # in course_tutorial_schedule.html template
         return compatible_tas
+
+    def assign_ta(self, ta):
+        """ Takes a TAData object (ta) and assigns it to the tutorial """
+        # Important to assign to other timeslot objects as well
+        other_tuts = Course_Tutorial.objects.filter(
+                name=self.name,
+                course=self.course
+        )
+        for tut in other_tuts:
+            tut.ta=ta
+            tut.save()
 
     class Meta:
         verbose_name = "Tutorial"

@@ -70,10 +70,11 @@ def generate_course_review_table_td(ts_string, tut_list, tas):
     
     has_tutorial  = False
     num_tutorials = 0
-    is_filled     = False
+    num_filled    = 0
     is_first      = False
     is_last       = False
     num_tas       = None
+    tut_string    = ''
 
     # Is there a tutorial during this time?
     tut_ts_strings = [tut.timeslot.to_string() for tut in tut_list]
@@ -92,25 +93,33 @@ def generate_course_review_table_td(ts_string, tut_list, tas):
                 timeslot__time_of_day = tod
         )
 
+        tut_pks = []
+
         for tut in tuts:
             if tut.ta:
-                is_filled=ta
+                num_filled +=1
             if tut.is_first:
                 is_first = tut
             if tut.is_last:
                 is_last  = tut
+            tut_pks.append(str(tut.pk))
 
         # Cheating, but assuming all the same
         num_tas=tuts[0].get_ta_in_list(tas)
+        # Get the list of tutorial pks for this timeslot, but write it as a
+        # string so can be passed back and forth from html
+        tut_string = ",".join(tut_pks)
+
 
     return {
             'ts_string'    : ts_string,
             'has_tutorial' : has_tutorial,
             'num_tutorials': num_tutorials,
-            'is_filled'    : is_filled,
+            'num_filled'   : num_filled,
             'is_first'     : is_first,     
             'is_last'      : is_last,     
             'num_tas'      : num_tas,     
+            'tuts'         : tut_string,
     }
 
 @register.filter

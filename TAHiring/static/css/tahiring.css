@@ -2,6 +2,14 @@ body {
     background: url("/static/bg_oceanic.png");
 }
 
+/* Generic Classes */
+.right {
+    float: right;
+}
+
+.left {
+    float: left;
+}
 
 /* Availability Table */
 
@@ -172,10 +180,12 @@ table td.highlighted {
 }
 
 .tutorial-ta-popup {
-    position: relative;
+    position: absolute;
+    bottom: 110%;
     display: none;
-    cursor: pointer;
     user-select: none;
+    overflow: visible;
+    margin: 0 auto;
 }
 
 .tutorial-ta-popup-text {
@@ -184,13 +194,17 @@ table td.highlighted {
     text-align: center;
     border-radius: 6px;
     padding: 8px;
-    position: absolute;
+    position: relative;
     z-index: 1;
     bottom: 125%;
     left: 50%;
     margin-left: -80px;
 }
 
+.tutorial-ta-popup-text a {
+    color: yellow;
+    cursor: pointer;
+}
 .tutorial-ta-popup .tutorial-ta-popup-text::after {
     content: "";
     position: absolute;

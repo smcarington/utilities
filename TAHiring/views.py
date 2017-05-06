@@ -233,7 +233,15 @@ def review_course(request, course_pk):
     course = Course.objects.get(pk=course_pk)
     list_of_tutorials = Course_Tutorial.objects.select_related(
             'timeslot').filter(course = course)
-    list_of_tas = TAData.objects.prefetch_related('availability__timeslot').all()
+    # Remember to filter out TAs who are not qualified for this subject.
+    ta_pks = (TACourseInterest.objects
+                .filter(course=course)
+                .values_list('ta__pk', flat=True)
+    )
+    list_of_tas = (TAData.objects
+            .prefetch_related('availability__timeslot', 'courses_interested')
+            .filter(pk__in=ta_pks)
+    )
 
     return render(request,
             'TAHiring/review_course.html',
@@ -243,3 +251,42 @@ def review_course(request, course_pk):
                 'list_of_tas': list_of_tas,
             }
     )
+
+# NEED TO ADD STAFF PRIVILEGES
+def assign_ta_to_tutorial(request):
+    """ AJAX method for assigning a TA to a tutorial. Takes POST data containing
+    the ta_pk and tut_pk.
+    """
+
+    if request.method == "POST":
+        try:
+            ta_pk  = int(request.POST['ta_pk'])
+            tut_pks = [int(pkstr) for pkstr in request.POST['tut_pks'].split(',')]
+            
+            ta  = get_object_or_404(TAData, pk=ta_pk)
+            tuts = Course_Tutorial.objects.filter(pk__in=tut_pks)
+
+            # Iterate through the tutorials until you find a tutorial that has
+            # not been assigned a ta. Assign the ta and break
+            for tut in tuts:
+                if not tut.ta:
+                    tut.assign_ta(ta)
+                    break
+            
+            ret_str = ("TA {fn} {ln} successfull added to {course}:"
+                "TUT{tut}"
+                .format(
+                    fn = ta.first_name,
+                    ln = ta.last_name,
+                    course = tut.course.course_code,
+                    tut = tut.name
+                )
+            )
+            return HttpResponse(ret_str)
+
+        except Exception as e:
+            print(e)
+            raise Http404(e)
+
+    else:
+        raise Http404('Invalid request')

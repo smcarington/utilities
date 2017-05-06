@@ -1,7 +1,7 @@
 {% load generate_availability_table %}
 <td data-id = "{{ts_string}}" class="
         {% if has_tutorial %}tutorial 
-            {% if is_filled %}
+            {% if num_filled == num_tutorials %}
                 tutorial-filled 
             {% else %}
                 tutorial-unfilled 
@@ -12,16 +12,21 @@
                 tutorial-last 
             {% endif %} 
         {% endif %}">
-    {% if has_tutorial %}
-        {% if is_first %}
-            <div class="tutorial-ta-popup">
-                {% for ta in num_tas %}
-                    <span class="tutorial-ta-popup-text"> {{ta.first_name}} {{ta.last_name}}</span>
-                {% endfor %}
-            </div>
-            <p>{% html_for_ta_output num_tas %}</p>
-        {% elif is_last %}
-            <p>{{num_tutorials}} Tutorials</p>
-        {% endif %}
+    {% if is_first %}
+        <div class="tutorial-ta-popup">
+                <div class="tutorial-ta-popup-text"> 
+                    {% for ta in num_tas %}
+                        <div>{{ta.first_name}} {{ta.last_name}} &lt;{{ta.tutorials_as_string}} &gt;
+                            <small>
+                                <a class="submit-tas" data-ta="{{ta.pk}}", data-tut={{tuts}} href=javascript:void()>(assign)
+                                </a>
+                            </small>
+                        </div>
+                    {% endfor %}
+                </div>
+        </div>
+        <p>{% html_for_ta_output num_tas %}</p>
+    {% elif is_last %}
+        <p>{{num_tutorials}} Tutorial{% if num_tutorials != 1 %}s{% endif %} <small>({{num_filled}} assigned)</small></p>
     {% endif %}
 </td>
