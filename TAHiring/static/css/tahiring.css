@@ -151,11 +151,11 @@ table td.highlighted {
 }
 
 .tutorial-filled {
-    background-color: #6699ff;
+    background-color: #add8e6;
 }
 
 .tutorial-unfilled {
-    background-color: #ff4d4d;
+    background-color: #ff8080;
 }
 
 .tutorial-first {
@@ -205,6 +205,7 @@ table td.highlighted {
     color: yellow;
     cursor: pointer;
 }
+
 .tutorial-ta-popup .tutorial-ta-popup-text::after {
     content: "";
     position: absolute;
@@ -214,4 +215,12 @@ table td.highlighted {
     border-width: 5px;
     border-style: solid;
     border-color: #555 transparent transparent transparent;
+}
+
+.taHover {
+    background-color: yellow;
+}
+
+#course-select {
+    width: 20%;
 }

@@ -75,6 +75,7 @@ def generate_course_review_table_td(ts_string, tut_list, tas):
     is_last       = False
     num_tas       = None
     tut_string    = ''
+    assigned      = []
 
     # Is there a tutorial during this time?
     tut_ts_strings = [tut.timeslot.to_string() for tut in tut_list]
@@ -106,10 +107,10 @@ def generate_course_review_table_td(ts_string, tut_list, tas):
 
         # Cheating, but assuming all the same
         num_tas=tuts[0].get_ta_in_list(tas)
+        assigned = [tut.ta.full_name for tut in tuts.filter(ta__isnull=False)]
         # Get the list of tutorial pks for this timeslot, but write it as a
         # string so can be passed back and forth from html
         tut_string = ",".join(tut_pks)
-
 
     return {
             'ts_string'    : ts_string,
@@ -119,8 +120,17 @@ def generate_course_review_table_td(ts_string, tut_list, tas):
             'is_first'     : is_first,     
             'is_last'      : is_last,     
             'num_tas'      : num_tas,     
-            'tuts'         : tut_string,
+            'tut_string'   : tut_string,
+            'assigned'     : assigned,
     }
+
+@register.simple_tag
+def array_to_string(the_array):
+    """Turns an array into a string """
+
+    # Ensure everything in the array is a string
+    str_array = [str(item) for item in the_array]
+    return ",".join(str_array)
 
 @register.filter
 def is_selected(selected, dow, tod):

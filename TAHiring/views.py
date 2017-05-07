@@ -243,12 +243,15 @@ def review_course(request, course_pk):
             .filter(pk__in=ta_pks)
     )
 
+    all_courses = Course.objects.all()
+
     return render(request,
             'TAHiring/review_course.html',
             {
                 'course': course,
                 'list_of_tutorials': list_of_tutorials,
                 'list_of_tas': list_of_tas,
+                'courses' : all_courses,
             }
     )
 
@@ -262,16 +265,23 @@ def assign_ta_to_tutorial(request):
         try:
             ta_pk  = int(request.POST['ta_pk'])
             tut_pks = [int(pkstr) for pkstr in request.POST['tut_pks'].split(',')]
+            assign = (request.POST['assign'] == 'true')
             
             ta  = get_object_or_404(TAData, pk=ta_pk)
             tuts = Course_Tutorial.objects.filter(pk__in=tut_pks)
 
             # Iterate through the tutorials until you find a tutorial that has
             # not been assigned a ta. Assign the ta and break
-            for tut in tuts:
-                if not tut.ta:
-                    tut.assign_ta(ta)
-                    break
+            if assign:
+                for tut in tuts:
+                    if not tut.ta:
+                        tut.assign_ta(ta)
+                        break
+            else:
+                for tut in tuts:
+                    if (tut.ta == ta):
+                        tut.remove_ta()
+                        break;
             
             ret_str = ("TA {fn} {ln} successfull added to {course}:"
                 "TUT{tut}"

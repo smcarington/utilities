@@ -11,17 +11,32 @@
             {% elif is_last %}
                 tutorial-last 
             {% endif %} 
-        {% endif %}">
+        {% endif %}"
+        data-tas ="{% array_to_string assigned %}"
+        >
     {% if is_first %}
         <div class="tutorial-ta-popup">
                 <div class="tutorial-ta-popup-text"> 
                     {% for ta in num_tas %}
-                        <div>{{ta.first_name}} {{ta.last_name}} &lt;{{ta.tutorials_as_string}} &gt;
-                            <small>
-                                <a class="submit-tas" data-ta="{{ta.pk}}", data-tut={{tuts}} href=javascript:void()>(assign)
-                                </a>
-                            </small>
-                        </div>
+                        {% if num_filled == num_tutorials %}
+                            {% if ta.full_name in assigned %}
+                                <div>{{ta.full_name}} {#&lt;{{ta.tutorials_as_string}} &gt;#}
+                                    <small>
+                                            <a class="assign-ta" data-ta="{{ta.pk}}", data-tut={{tut_string}} href=javascript:void()>(unassign)</a>
+                                    </small>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div>{{ta.full_name}} {#&lt;{{ta.tutorials_as_string}} &gt;#}
+                                <small>
+                                    {% if ta.full_name in assigned %}
+                                        <a class="assign-ta" data-ta="{{ta.pk}}", data-tut={{tut_string}} href=javascript:void()>(unassign)</a>
+                                    {% else %}
+                                        <a class="assign-ta" data-ta="{{ta.pk}}", data-tut={{tut_string}} href=javascript:void()>(assign)</a>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        {% endif %}
                     {% endfor %}
                 </div>
         </div>

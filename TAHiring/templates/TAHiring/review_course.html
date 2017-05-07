@@ -5,11 +5,24 @@
     course - (Course) the current course model
     list_of_tutorials (CourseTutorial) 
     list_of_tas (TAData)
+    courses (Course list) for selector 
 {% endcomment %}
 
 {% block content %}
 
     <h2> {{course.course_code}}</h2>
+    <div class="form-group">
+        <select id="course-select" class="form-control">
+            {% for course_it in courses %}
+                <option value={{course_it.pk}}
+                    {% if course_it == course %}
+                        selected="selected"
+                    {% endif %}>
+                    {{course_it.course_code}}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
 
     <div id="loader-modal" class="mymodal">
         <div class="mymodal-loader">
@@ -26,6 +39,12 @@
 {% block script %}
     <script>
         $(document).ready( function() {
+            // Change the displayed course
+            $('#course-select').change( function () {
+                course_pk = $(this).val();
+                window.location.replace("{% url 'review_course' course_pk=12345 %}".replace(/12345/, course_pk.toString()));
+            });
+
             // Keeps track of whether to toggle TAs on or off. Initially off.
             var toggleOn = false;
             // Show popups when a tutorial is clicked
@@ -58,14 +77,16 @@
             });
 
             // The AJAX for assigning a TA
-            $(".submit-tas").click( function() {
+            $(".assign-ta").click( function() {
                 ta_pk = $(this).attr('data-ta');
                 tut_pks = $(this).attr('data-tut');
+                assign = ($(this).html() == '(assign)');
                 $.ajax({
                     url: "{% url 'assign_ta' %}",
                     method: "POST",
                     data: { ta_pk: ta_pk,
                             tut_pks: tut_pks,
+                            assign: assign,
                             csrfmiddlewaretoken: "{{ csrf_token }}",
                           },
                     dataType: "text",
@@ -80,6 +101,17 @@
                     window.location.reload();
                 });
             });
+
+            // Color the tutorials that a TA is assigned to when his/her name is
+            // hovered.
+            $('.tutorial-ta-popup-text > div').hover(
+                //handlerIn: Highlight those tutorials green
+                function () {
+                    ta_full_name = $(this).html();
+                    ta_full_name = ta_full_name.split(' ').slice(0,2).join(' ');
+                    $('td[data-tas*="'+ta_full_name+'"').toggleClass("taHover");
+                }
+            );
         });
     </script>
 {% endblock %}

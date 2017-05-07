@@ -14,8 +14,7 @@ class TAData(models.Model):
         courses the TA is interested in will be separate models linked to the TA
         through a foreign key relationship.
     """
-
-    # Validators: phone_regex used to validate the phone number,
+# Validators: phone_regex used to validate the phone number,
     #             tutorial_num used to validate number of tutorials
     def phone_validator(value):
         pattern = re.compile(r'^\+?1?\d{9,15}$')
@@ -139,6 +138,10 @@ class TAData(models.Model):
         return "{last}, {first}".format(
             last  = self.last_name,
             first = self.first_name)
+
+    @property
+    def full_name(self):
+        return "{} {}".format(self.first_name, self.last_name)
 
 class TimeSlotManager(models.Manager):
     """ Adds custom manager functions to the timeslot model
@@ -384,6 +387,16 @@ class Course_Tutorial(models.Model):
         )
         for tut in other_tuts:
             tut.ta=ta
+            tut.save()
+
+    def remove_ta(self):
+        """ Remove the TA from the tutorial and all related tutorials. """
+        other_tuts = Course_Tutorial.objects.filter(
+                name=self.name,
+                course=self.course
+        )
+        for tut in other_tuts:
+            tut.ta = None
             tut.save()
 
     class Meta:
