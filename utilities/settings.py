@@ -123,9 +123,20 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 """ Additional settings below """
+
+if DEBUG:
+    EMAIL_HOST = 'localhost'
+    EMAIL_PORT = '1025'
+    EMAIL_HOST_USER = ''
+    EMAIL_HOST_PASSWORD = ''
+    EMAIL_USE_TLS = False
+    DEFAULT_FROM_EMAIL = "test@mat237.com"
+
+
 TIME_INTERVAL= 30 # Number of minutes between 
 SITE_NAME   = 'MCS Utilities'
 URL_PREPEND = ''
+TIME_FORMAT = '%H%M'
 DOW_DICTIONARY = {
     'M': 0,
     'T': 1,
@@ -135,3 +146,9 @@ DOW_DICTIONARY = {
     'S': 5,
     'U': 6,
 }
+TERM_CHOICES = (
+    ('F', 'Fall'),
+    ('S', 'Spring'),
+    ('Y', 'Full Year'),
+    ('U', 'Summer')
+)

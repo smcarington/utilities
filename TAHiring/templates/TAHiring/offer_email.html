@@ -1,0 +1,18 @@
+{% autoescape off %}
+
+Hello {{ta.full_name}},
+
+We are pleased to offer you a TA position in the following:
+{% for course, value in data.items %}
+    {{course}}:
+    {% for tut, vals in value.items %}
+        TUT{{tut}}: 
+            Day: {{vals.day}}, Start: {{vals.start}}, End: {{vals.end}}
+    {% endfor %}
+
+{% endfor %}
+
+To accept this offer, please visit
+http://{{ domain }}{% url 'confirm_offer' uidb64=uid token=token %}
+
+{% endautoescape %}

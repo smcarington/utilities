@@ -1,14 +1,19 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.urlresolvers import reverse
 from django.http import Http404, HttpResponse
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import force_text
+from django.template import loader
+from django.contrib.sites.shortcuts import get_current_site
 
 from .forms import *
 from .models import *
 from .tables import *
+from .tokens import confirm_offer_token
 
 import TAHiring.helper_functions as hf
 
-# -------- Application Form (Start) -------- #
+# -------- Application Form (fold) -------- #
 
 def application_form_personal(request):
     """ TA application form for personal information
@@ -91,7 +96,10 @@ def application_form_courses(request):
             request.session['courses'] = course_list_pk
 
             if next_page == 'availability':
-                return redirect('application_form_availability')
+                return redirect(
+                        'application_form_availability', 
+                        term='Fall'
+                    )
             elif next_page == 'personal':
                 return redirect('application_form_personal')
             else:
@@ -117,14 +125,21 @@ def application_form_courses(request):
         },
     )
 
-def application_form_availability(request):
+def application_form_availability(request, term="Fall"):
     """ This view handles the availability selection. Uses a custom form and
         javascript to handle filling in the form. Note that session data is
         stored in an array of strings, of the form "M1730" for Monday at 5:30pm
     """
-    next_call = 'complete'
-    past_call = 'courses'
-    header = "Availability"
+    if term == "Fall":
+        next_call = "availability_spring"
+        past_call = "courses"
+        header    = "Fall Availability"
+        session_name = "availability_fall"
+    elif term == "Spring":
+        next_call = 'complete'
+        past_call = 'availability_fall'
+        header    = "Spring Availability"
+        session_name = "availability_spring"
 
     # If post, then save data and redirect to new page
     if request.method == "POST":
@@ -139,13 +154,14 @@ def application_form_availability(request):
         ta = TAData.objects.get(pk=request.session['tapk'])
 
         # To save time, we're going to see which tutorials changed
-        cur_avail = TAAvailability.objects.filter(ta=ta)
+        cur_avail = TAAvailability.objects.filter(ta=ta, term=term[0])
         cur_avail.update(is_new=False)
         for data in new_selected:
             cur_ts = TimeSlot.objects.get_timeslot_by_string(data)
             obj, created = TAAvailability.objects.get_or_create(
                     ta       = ta,
-                    timeslot = cur_ts
+                    timeslot = cur_ts,
+                    term     = term[0]
             )
             obj.set_new(True)
 
@@ -153,10 +169,20 @@ def application_form_availability(request):
         cur_avail.filter(is_new=False).delete()
 
         # Store everything in session data
-        request.session['availability'] = new_selected
+        request.session[session_name] = new_selected
 
         if next_page == 'courses':
             redirect_url = reverse('application_form_courses')
+        elif next_page == 'availability_spring':
+            redirect_url = reverse(
+                'application_form_availability',
+                kwargs={"term":"Spring"}
+            )
+        elif next_page == 'availability_fall':
+            redirect_url = reverse(
+                'application_form_availability', 
+                kwargs={"term":"Fall"}
+            )
         else:
             redirect_url = reverse('application_complete')
 
@@ -166,9 +192,10 @@ def application_form_availability(request):
         request, 
         'TAHiring/application_availability.html',
         {
-            'next': next_call,
-            'prev': past_call,
+            'next'  : next_call,
+            'prev'  : past_call,
             'header': header,
+            'term'  : term,
         },
     )
 
@@ -179,7 +206,8 @@ def application_complete(request):
 
     # Delete the session data so that the form can be reused on the same
     # computer
-    session_data_names = ['personal', 'courses', 'availability', 'tapk']
+    session_data_names = ['personal', 'courses', 'availability_fall',
+    'availability_spring', 'tapk']
     for name in session_data_names:
         del request.session[name]
 
@@ -188,9 +216,9 @@ def application_complete(request):
             'TAHiring/application_complete.html'
     )
 
-# -------- Application Form (End) -------- #
+# -------- Application Form (end) -------- #
 
-# -------- Application Review (Start) -------- #
+# -------- Application Review (fold) -------- #
 
 # NEED TO ADD STAFF PRIVILEGES
 def review_applicants(request, tapk = None):
@@ -227,11 +255,12 @@ def review_applicants(request, tapk = None):
         )
 
 # NEED TO ADD STAFF PRIVILEGES
-def review_course(request, course_pk):
+def review_course_schedule(request, course_pk):
     """ View to examine the tutorials for a particular course. 
     """
+    # TODO: Make this a class-based view together with review_course_schedule
     course = Course.objects.get(pk=course_pk)
-    list_of_tutorials = Course_Tutorial.objects.select_related(
+    list_of_tutorials = CourseTutorial.objects.select_related(
             'timeslot').filter(course = course)
     # Remember to filter out TAs who are not qualified for this subject.
     ta_pks = (TACourseInterest.objects
@@ -246,12 +275,92 @@ def review_course(request, course_pk):
     all_courses = Course.objects.all()
 
     return render(request,
-            'TAHiring/review_course.html',
+            'TAHiring/review_course_schedule.html',
             {
                 'course': course,
                 'list_of_tutorials': list_of_tutorials,
                 'list_of_tas': list_of_tas,
                 'courses' : all_courses,
+            }
+    )
+
+def create_ctt_data(tutorials, tas, course):
+    """ Helper function for generating the table data needed to render
+    CourseTutorialTable.
+    Input: tutorials (list of CourseTutorial objects)
+                 tas (list of TAData objects)
+              course (Course object)
+    Return: array whose items are dictionaries with the fields for
+    CourseTutorialTable. These include ['tutorial', 'start', 'end', 'ta'] 
+    """
+    
+    table_data = []
+
+    # Each tutorial has multiple timeslots. Get their names first
+    tut_names = tutorials.values_list('name', flat=True)
+    tut_names = list(set(tut_names))
+    for tut_name in tut_names:
+        # Get all the tutorials of the same name, ordered by start time.
+        other_tuts = CourseTutorial.objects.filter(
+                name=tut_name,
+                course=course
+        ).order_by('timeslot')
+
+        day = other_tuts[0].timeslot.to_string()[0]
+        start_time = other_tuts[0].timeslot.add_time(0)
+        end_time   = (other_tuts.reverse()[0]
+                .timeslot
+                .add_time(settings.TIME_INTERVAL)
+        )
+        compatible_tas = other_tuts[0].get_ta_in_list(tas)
+        ta = other_tuts[0].ta
+        tut_pk = other_tuts[0].pk
+        
+        # Create the row data
+        row_data = {
+            'tutorial': tut_name,
+            'day'     : day,
+            'start'   : start_time,
+            'end'     : end_time,
+            'ta'      : ta,
+            'all_tas' : compatible_tas,
+            'tut_pk'  : tut_pk,
+        }
+        table_data.append(row_data)
+
+    return table_data
+
+# NEED TO ADD STAFF PRIVILEGES
+def review_course_table(request, course_pk):
+    """ Gives a table rendering of the course tutorials """
+
+    # TODO: Make this a class-based view together with review_course_schedule
+    course = Course.objects.get(pk=course_pk)
+    list_of_tutorials = CourseTutorial.objects.select_related(
+            'timeslot').filter(course = course)
+    # Remember to filter out TAs who are not qualified for this subject.
+    ta_pks = (TACourseInterest.objects
+                .filter(course=course)
+                .values_list('ta__pk', flat=True)
+    )
+    list_of_tas = (TAData.objects
+            .prefetch_related('availability__timeslot', 'courses_interested')
+            .filter(pk__in=ta_pks)
+    )
+
+    all_courses = Course.objects.all()
+
+    table_data = create_ctt_data(list_of_tutorials, list_of_tas, course)
+    tutorial_table = CourseTutorialTable(table_data)
+
+    return render(request,
+            'TAHiring/review_course_table.html',
+            {
+                'course': course,
+                'list_of_tutorials': list_of_tutorials,
+                'list_of_tas': list_of_tas,
+                'courses' : all_courses,
+                'tutorial_table': tutorial_table,
             }
     )
 
@@ -268,7 +377,7 @@ def assign_ta_to_tutorial(request):
             assign = (request.POST['assign'] == 'true')
             
             ta  = get_object_or_404(TAData, pk=ta_pk)
-            tuts = Course_Tutorial.objects.filter(pk__in=tut_pks)
+            tuts = CourseTutorial.objects.filter(pk__in=tut_pks)
 
             # Iterate through the tutorials until you find a tutorial that has
             # not been assigned a ta. Assign the ta and break
@@ -300,3 +409,120 @@ def assign_ta_to_tutorial(request):
 
     else:
         raise Http404('Invalid request')
+
+# -------- Application Review (end) -------- #
+
+# -------- Offers (fold) -------- #
+
+def send_offer_email(ta, token=confirm_offer_token):
+    """ Helper method for send_offers. Used to send emails to the TAs who have
+    been offered a job. Details their courses, tutorials, and provides a
+    one-time link for them to accept.
+    """
+
+    tutorials = ta.tutorials.all()
+    # Get the courses
+    courses = (tutorials.values_list('course__course',
+            flat=True).distinct().order_by()
+    )
+
+    # Create context for the email template
+    context = {
+        'uid': urlsafe_base64_encode(force_byes(ta.pk)),
+        'token' : token,
+        'ta' : ta,
+        'domain': get_current_site(request).domain
+    }
+
+    overall_data = {}
+    # Nested dictionary with the important information:
+    # For example,
+    # overall_data:
+    #   'MAT102':
+    #       'TUT0102':
+    #           'day'   : 'M',
+    #           'start' : '0900',
+    #           'end  ' : '1000'
+    for course in courses:
+        tut_names = (CourseTutorial.objects
+                .filter(
+                    course__course_code=course,
+                    ta=ta
+                )
+                .values_list('name', flat=True)
+                .distinct().order_by()
+        ) 
+        course_data = {}
+
+        for tut_name in tut_names:
+            # TODO: Similar code is used in create_ctt_data -- not DRY
+            # Get all the tutorials of the same name, ordered by start time.
+            other_tuts = CourseTutorial.objects.filter(
+                    name=tut_name,
+                    course__course_code=course
+            ).order_by('timeslot')
+
+            day = other_tuts[0].timeslot.to_string()[0]
+            start_time = other_tuts[0].timeslot.add_time(0)
+            end_time   = (other_tuts.reverse()[0]
+                    .timeslot
+                    .add_time(settings.TIME_INTERVAL)
+            )
+            # Create the row data
+            row_data = {
+                'day'     : day,
+                'start'   : start_time,
+                'end'     : end_time,
+            }
+            course_data[tut_name] = row_data
+        
+        overall_data[course] = course_data
+
+        # Add our data to context for template rendering
+        context['data'] = overall_data
+
+        subject = "UTM TA Offer"
+        body = loader.render_to_string('offer_email.html', context)
+        email_message = EmailMultiAlternatives(
+            subject, 
+            body,
+            settings.DEFAULT_FROM_EMAIL, 
+            [ta.email]
+        )
+
+        email_message.send()
+
+def send_offers(request, confirmed=False):
+    """ Sends the offers but offers a chance to validate the information.
+    In particular, shows any tutorials which were not filled.
+    Input: confirmed (Boolean, default False) 
+    """
+
+    if confirmed:
+        pass
+    else: # Send the offers
+        tutorials = CourseTutorial.objects.prefetch_related('ta').all()
+        ta_pks = tutorials.values_list('ta__pk', flat=True)
+        tas  = TAData.objects.prefetch_related('tutorials').filter(pk__in=ta_pks)
+
+        for ta in tas:
+            send_offer_email(ta)
+
+
+def confirm_offer(request, uidb64, token):
+    """ Confirm an offer by use of a one time link.
+    """
+
+    try:
+        uid = force_text(urlsafe_base64_decode(uidb64))
+        ta  = TAData.objects.get(pk=uid)
+    except Exception as e:
+        ta = None
+
+    if ta is not None and confirm_offer_token.check_token(ta, token):
+        ta.accept_offer()
+        return redirect('offer_accepted')
+    else:
+        return redirect('invalid_token')
+
+# -------- Offers (end) -------- #

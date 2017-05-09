@@ -25,12 +25,22 @@
     </div>
 
     <div id="weekly-schedule">
-        {% availability_table request.session.availability %}
+        {% if term == "Fall" %}
+            {% availability_table request.session.availability_fall %}
+        {% else %}
+            {% availability_table request.session.availability_spring %}
+        {% endif %}
     </div>
 
     <div>
         <button class="btn btn-default" name="{{prev}}">Back</button>
-        <button class="btn btn-default" name="{{next}}">Submit Application</button>
+        <button class="btn btn-default" name="{{next}}">
+            {% if next == "availability_spring" %}
+                Spring Availability
+            {% else %}
+                Submit Application
+            {% endif %}
+        </button>
     </div>
 
 {% endblock %}
@@ -73,7 +83,7 @@
                     selected.push($(this).attr('data-id'));
                 });
                 $.ajax({
-                    url: "{% url 'application_form_availability' %}",
+                    url: "{% url 'application_form_availability' term='replace' %}".replace(/replace/, "{{term}}"),
                     method: 'POST',
                     data:{
                         highlighted: selected, 

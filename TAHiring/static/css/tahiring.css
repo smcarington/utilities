@@ -185,7 +185,6 @@ table td.highlighted {
     display: none;
     user-select: none;
     overflow: visible;
-    margin: 0 auto;
 }
 
 .tutorial-ta-popup-text {
@@ -197,8 +196,10 @@ table td.highlighted {
     position: relative;
     z-index: 1;
     bottom: 125%;
-    left: 50%;
-    margin-left: -80px;
+/*    left: 50%;
+    margin-left: -80px;*/
+    margin-left: -40px;
+    margin-right:-40px;
 }
 
 .tutorial-ta-popup-text a {

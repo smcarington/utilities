@@ -4,7 +4,6 @@ from TAHiring.models import *
 
 import TAHiring.helper_functions as hf
 
-
 register = template.Library()
 
 @register.inclusion_tag('TAHiring/schedule.html')

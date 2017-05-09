@@ -10,7 +10,7 @@ class PersonalInfoForm(forms.ModelForm):
                 'phone', 'education', 'prev_courses', 'other_exp')
 
 class CourseForm(forms.ModelForm):
-    attrs = {'style': 'width: 200px'}
+    attrs = {'style': 'width: 200px; height: 400px'}
     courses = forms.ModelMultipleChoiceField(
             widget=forms.SelectMultiple(attrs), 
             queryset=Course.objects.all(),

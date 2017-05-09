@@ -22,6 +22,7 @@
                 </option>
             {% endfor %}
         </select>
+        <a href={% url 'review_course_table' course_pk=course.pk %}>View as Table</a>
     </div>
 
     <div id="loader-modal" class="mymodal">
@@ -42,7 +43,7 @@
             // Change the displayed course
             $('#course-select').change( function () {
                 course_pk = $(this).val();
-                window.location.replace("{% url 'review_course' course_pk=12345 %}".replace(/12345/, course_pk.toString()));
+                window.location.replace("{% url 'review_course_schedule' course_pk=12345 %}".replace(/12345/, course_pk.toString()));
             });
 
             // Keeps track of whether to toggle TAs on or off. Initially off.

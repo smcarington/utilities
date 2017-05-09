@@ -36,6 +36,8 @@ class TAData(models.Model):
                         ('UG4', 'Fourth Year Undegraduate'),
                         ('MAS', 'Masters'),
                         ('PHD', 'PhD'),
+                        ('PD',  'Post-Doc'),
+                        ('ND',  'Non degree'),
                   )
     
     first_name   = models.CharField(max_length=20, verbose_name="First Name")
@@ -109,7 +111,7 @@ class TAData(models.Model):
             course_codes = list(set(course_codes))
 
             ret_str = ""
-            course_template = "{cc}: {thelist}"
+            course_template = "{cc}: {thelist}; "
 
             for course in course_codes:
                 course_tuts = (tuts
@@ -220,6 +222,17 @@ class TimeSlot(models.Model):
         }
         return DOW_DICTIONARY[str(self.day_of_week)]+self.time_of_day
 
+    def add_time(self, time):
+        """ Adds time to timeslot and returns a string of the new value. For
+        example, if time_of_day = '0930', then timeslow.add_time(45) = '1015'
+        """
+        time_in_dt = (dt.datetime.strptime(
+            self.time_of_day,
+            settings.TIME_FORMAT)
+        )
+        add_time = dt.timedelta(minutes=time)
+        return (time_in_dt+add_time).time().strftime(settings.TIME_FORMAT)
+
     def __str__(self):
         return "{dow} {tod}".format(
             dow = self.day_of_week,
@@ -232,9 +245,14 @@ class TimeSlot(models.Model):
 class TAAvailability(models.Model):
     """ Inherits TimeSlot. Tracks TA availability. One row per opening
     """
-    ta = models.ForeignKey(TAData, related_name="availability")
+    ta       = models.ForeignKey(TAData, related_name="availability")
     timeslot = models.ForeignKey(TimeSlot, related_name="ta_availability", null=True)
-    is_new = models.BooleanField(default=False)
+    is_new   = models.BooleanField(default=False)
+    term     = models.CharField(
+        max_length = 1,
+        choices = settings.TERM_CHOICES,
+        default = 'F'
+    )
 
     def set_new(self, is_new):
         self.is_new = is_new
@@ -256,10 +274,16 @@ class Course(models.Model):
         but lecture slots could easily be added for extendability.
     """
     # Should be of form AAAXXX, like MAT102 or STA257
-    course_code = models.CharField(max_length=6)
+    course_code = models.CharField(max_length=9)
+    term     = models.CharField(
+        max_length = 1,
+        choices = settings.TERM_CHOICES,
+        default = 'F'
+    )
 
     class Meta:
         verbose_name = "Course"
+        ordering = ['course_code', 'term']
 
     def __str__(self):
         return self.course_code
@@ -283,8 +307,57 @@ class TACourseInterest(models.Model):
         )
 
 class CourseTutorialManager(models.Manager):
-    """ Adds custom manager functions to the Course_Tutorial model
+    """ Adds custom manager functions to the CourseTutorial model
     """
+    def create_tutorials(self, name, course, day, start, end):
+        """ Since each tutorials has multiple timeslots, this method takes care
+            of figuring out the correct way of taking the start and end times
+            and creating those time slot models.
+        """
+
+        # Start by getting the timeslots
+        DT_START = dt.datetime.strptime(
+                start.replace(":", ""), 
+                settings.TIME_FORMAT).time()
+        DT_END   = dt.datetime.strptime(
+                end.replace(":", ""),
+                settings.TIME_FORMAT).time()
+        cur_time = DT_START
+        timeslots = []
+
+        while True:
+            ts, create = (
+            TimeSlot.objects
+                .get_or_create(
+                    day_of_week = settings.DOW_DICTIONARY[day],
+                    time_of_day = cur_time.strftime(settings.TIME_FORMAT)
+                )
+            )
+            timeslots.append(ts)
+
+            # Genrate the next time and see if it lies outside
+            cur_time = (dt.datetime.combine(dt.date.today(), cur_time) 
+                    + dt.timedelta(minutes=settings.TIME_INTERVAL)).time()
+            if cur_time >= DT_END:
+                break
+
+        last_item = len(timeslots)
+        first = True
+        last  = False
+        for it, ts in enumerate(timeslots):
+            if it == last_item-1:
+                last = True
+
+            tut = CourseTutorial(
+                    name = name,
+                    course = course,
+                    timeslot = ts,
+                    is_first = first,
+                    is_last = last
+            )
+            if first:
+                first = False
+            tut.save()
 
     def get_tutorials_by_string(self,ts_string):
         """ Gets the current time slot using the given string. Currently only
@@ -306,7 +379,7 @@ class CourseTutorialManager(models.Manager):
                 time_slot__day_of_week = DOW_DICTIONARY[dow],
                 time_slot__time_of_day = tod)
 
-class Course_Tutorial(models.Model):
+class CourseTutorial(models.Model):
     """ Tracks tutorials for a course. One row per tutorial. Has a foreign key
         relationship to Course
     """
@@ -317,7 +390,9 @@ class Course_Tutorial(models.Model):
     # tutorial is first and which is last
     is_first = models.BooleanField(default=False)
     is_last  = models.BooleanField(default=False)
-    ta       = models.ForeignKey(TAData, 
+    ta       = models.ForeignKey(
+            TAData, 
+            models.SET_NULL,
             related_name="tutorials", 
             null=True,
             blank=True)
@@ -327,7 +402,7 @@ class Course_Tutorial(models.Model):
     # the next two methods determine if that timeslot is the first or last. This
     # is so that they can be given css-appropriate class names
     def set_first_and_last(self):
-        all_tutorials = Course_Tutorial.objects.filter(
+        all_tutorials = CourseTutorial.objects.filter(
                 name = self.name,
                 course = self.course
         ).order_by('timeslot')
@@ -353,7 +428,7 @@ class Course_Tutorial(models.Model):
         # We need to see that a TA matches all timeslots.
 
         # Get the related tutorials for total comparison
-        related_tuts = Course_Tutorial.objects.select_related('timeslot').filter(
+        related_tuts = CourseTutorial.objects.select_related('timeslot').filter(
                 name = self.name,
                 course = self.course
         ).order_by('timeslot')
@@ -361,8 +436,8 @@ class Course_Tutorial(models.Model):
         # Get the timeslots from the related tutorials. NTS: If this doesn't
         # work, call to_string on everything and do array comparison
         timeslots = [tut.timeslot for tut in related_tuts]
-        
-        if not ta_list:
+
+        if ta_list is None:
             ta_list = TAData.objects.prefetch_related('availability__timeslot').all()
 
         compatible_tas = []
@@ -381,7 +456,7 @@ class Course_Tutorial(models.Model):
     def assign_ta(self, ta):
         """ Takes a TAData object (ta) and assigns it to the tutorial """
         # Important to assign to other timeslot objects as well
-        other_tuts = Course_Tutorial.objects.filter(
+        other_tuts = CourseTutorial.objects.filter(
                 name=self.name,
                 course=self.course
         )
@@ -391,7 +466,7 @@ class Course_Tutorial(models.Model):
 
     def remove_ta(self):
         """ Remove the TA from the tutorial and all related tutorials. """
-        other_tuts = Course_Tutorial.objects.filter(
+        other_tuts = CourseTutorial.objects.filter(
                 name=self.name,
                 course=self.course
         )
@@ -401,7 +476,7 @@ class Course_Tutorial(models.Model):
 
     class Meta:
         verbose_name = "Tutorial"
-        ordering = ['timeslot']
+        ordering = ['course', 'name', 'timeslot']
 
     def __str__(self):
         return "{course}: TUT{name} at {time}".format(
