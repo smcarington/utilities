@@ -152,3 +152,8 @@ TERM_CHOICES = (
     ('Y', 'Full Year'),
     ('U', 'Summer')
 )
+
+try:
+    from .local_settings import *
+except ImportError as e:
+    print('No local settings detected')
