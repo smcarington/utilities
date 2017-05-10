@@ -1,4 +1,11 @@
 import datetime as dt
+from django.contrib.auth.decorators import (login_required, permission_required,
+    user_passes_test)
+from django.conf import settings
+
+
+def staff_required(login_url=settings.LOGIN_URL):
+    return user_passes_test(lambda u:u.is_staff, login_url=login_url)
 
 def generate_days_and_time(START_TIME = "0900", END_TIME = "1900"):
     """ Helper method used to generate raw data for making the availability

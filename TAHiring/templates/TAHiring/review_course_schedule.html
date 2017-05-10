@@ -1,4 +1,4 @@
-{% extends 'TAHiring/base.html' %}
+{% extends 'TAHiring/base_review.html' %}
 {% load generate_availability_table %}
 
 {% comment %}
@@ -6,10 +6,10 @@
     list_of_tutorials (CourseTutorial) 
     list_of_tas (TAData)
     courses (Course list) for selector 
+    term (String) indicating which term to filter by
 {% endcomment %}
 
 {% block content %}
-
     <h2> {{course.course_code}}</h2>
     <div class="form-group">
         <select id="course-select" class="form-control">
@@ -34,11 +34,16 @@
     {% generate_course_review_table course list_of_tutorials list_of_tas %}
 
     <button id="toggleTAs" class="btn btn-default right">Toggle TAs</button>
-
 {% endblock %}
 
 {% block script %}
     <script>
+        // Set the course cookie on unload
+        $(window).unload( function() {
+            course_pk = document.location.href.split('/').pop();
+            Cookies.set('course_pk', course_pk);
+        });
+
         $(document).ready( function() {
             // Change the displayed course
             $('#course-select').change( function () {

@@ -28,11 +28,16 @@ def availability_table(selected):
 @register.inclusion_tag('TAHiring/course_tutorial_schedule.html')
 def generate_course_review_table(course, tutorials, tas):
     """ Creates the table of tutorials.
+        Input:
+         course (Course) - The course model
+         tutorials (CourseTutorials[]) - Array of tutorials. Already filtered by
+                                         term.
+         tas (TAData[]) array of TAs qualified for this course.
     """
 
     DAYS, HOURS = hf.generate_days_and_time()
 
-    return {
+    jeturn {
             'times'   : HOURS,
             'days'    : DAYS,
             'tutorials': tutorials,

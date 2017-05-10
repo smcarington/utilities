@@ -1,0 +1,50 @@
+{% load navbar_inclusion_tag %}
+
+<nav class="navbar navbar-default navbar-fixed-top"> 
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand">Utilities</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                {% if 'announcements' in modules %}
+                <li><a class = "{% check_active request 'announcements' %}" href="{% url 'announcements' %}">Announcements</a></li>
+                {% endif %}
+
+                {% if 'problem_set' in modules %}
+                <li class="dropdown">
+                <a class="{% check_active request 'problem_set' %}" href="javascript:void(0)" data-toggle="dropdown" class="dropdown-toggle">Problem Sets<b class="caret"></b></a>
+                    <ul class="dropdown-menu ps-columns">
+                        {% for ps in problem_sets %}
+                            {% if ps.visible %}
+                                <li><a href="{% url 'list_problem_set' pk=ps.pk %}">{{ ps.title }}</a></li>
+                            {% elif request.user.is_staff %}
+                                <li><a class="unavailable" href="{% url 'list_problem_set' pk=ps.pk %}">{{ ps.title }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                <li>
+                    <a class="{% check_active request 'applicants' %}" href="{% url 'review_applicants' %}" >
+                        Review Applicants
+                    </a>
+                </li>
+                <li>
+                    <a id="nav-review-applicant" class="{% check_active request 'course' %}" href="{% url 'review_course_schedule' course_pk=1 %}" >
+                        Review Courses
+                    </a>
+                </li>
+
+            </ul>
+            <div class="navbar-right">
+            </div>
+        </div>
+    </div>
+</nav>

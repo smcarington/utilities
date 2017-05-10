@@ -10,6 +10,7 @@ from .forms import *
 from .models import *
 from .tables import *
 from .tokens import confirm_offer_token
+from .helper_functions import *
 
 import TAHiring.helper_functions as hf
 
@@ -220,7 +221,9 @@ def application_complete(request):
 
 # -------- Application Review (fold) -------- #
 
-# NEED TO ADD STAFF PRIVILEGES
+
+
+#@staff_required
 def review_applicants(request, tapk = None):
     """ See the list of applicants. Uses Ajax to load 
     """
@@ -254,14 +257,32 @@ def review_applicants(request, tapk = None):
                 }
         )
 
-# NEED TO ADD STAFF PRIVILEGES
-def review_course_schedule(request, course_pk):
+# @staff_required()
+def review_course_schedule(request, course_pk, term=''):
     """ View to examine the tutorials for a particular course. 
+        Input: course_pk (int) the primary key for the Course object
+               term (Str, default '') one of settings.TERM_CHOICES to
+               filter the tutorials.
     """
     # TODO: Make this a class-based view together with review_course_schedule
+    
     course = Course.objects.get(pk=course_pk)
-    list_of_tutorials = CourseTutorial.objects.select_related(
-            'timeslot').filter(course = course)
+
+    if course.term == 'Y'and term == '':
+        return redirect('review_course_schedule', 
+                course_pk = course_pk, 
+                term="F")
+
+    list_of_tutorials = (
+        CourseTutorial.objects.select_related('timeslot')
+        .filter(course = course)
+    )
+
+    # Need to handle Y courses differently, since they have F/S terms but a
+    # single course. Hence if term is specified, additionally filter by that
+    # term.
+    if term:
+        list_of_tutorials = list_of_tutorials.filter(term=term)
     # Remember to filter out TAs who are not qualified for this subject.
     ta_pks = (TACourseInterest.objects
                 .filter(course=course)
@@ -281,6 +302,7 @@ def review_course_schedule(request, course_pk):
                 'list_of_tutorials': list_of_tutorials,
                 'list_of_tas': list_of_tas,
                 'courses' : all_courses,
+                'term' : term,
             }
     )
 
@@ -330,7 +352,7 @@ def create_ctt_data(tutorials, tas, course):
 
     return table_data
 
-# NEED TO ADD STAFF PRIVILEGES
+# @staff_required
 def review_course_table(request, course_pk):
     """ Gives a table rendering of the course tutorials """
 
@@ -364,7 +386,7 @@ def review_course_table(request, course_pk):
             }
     )
 
-# NEED TO ADD STAFF PRIVILEGES
+# @staff_required
 def assign_ta_to_tutorial(request):
     """ AJAX method for assigning a TA to a tutorial. Takes POST data containing
     the ta_pk and tut_pk.
@@ -414,6 +436,7 @@ def assign_ta_to_tutorial(request):
 
 # -------- Offers (fold) -------- #
 
+#@staff_required()
 def send_offer_email(ta, token=confirm_offer_token):
     """ Helper method for send_offers. Used to send emails to the TAs who have
     been offered a job. Details their courses, tutorials, and provides a
@@ -492,6 +515,7 @@ def send_offer_email(ta, token=confirm_offer_token):
 
         email_message.send()
 
+# @staff_required()
 def send_offers(request, confirmed=False):
     """ Sends the offers but offers a chance to validate the information.
     In particular, shows any tutorials which were not filled.

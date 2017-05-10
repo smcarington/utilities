@@ -309,10 +309,20 @@ class TACourseInterest(models.Model):
 class CourseTutorialManager(models.Manager):
     """ Adds custom manager functions to the CourseTutorial model
     """
-    def create_tutorials(self, name, course, day, start, end):
+    def create_tutorials(self, name, course, day, start, end, term=''):
         """ Since each tutorials has multiple timeslots, this method takes care
             of figuring out the correct way of taking the start and end times
-            and creating those time slot models.
+            and creating those time slot models. Takes optional argument (term),
+            which if None will default to the same term as the course. This is
+            used for multi-term courses where the tutorials need to be kept
+            distinct.
+            Input: name (str) - The name of the tutorial, like '0102'
+                   course (Course) - The course to which the tutorial belongs
+                   day (str) - The day of the week, one of M,T,W,R,F,S,U
+                   start, end (str) - start and end times for the tutorial, in
+                   settings.TIME_FORMAT
+                   term (str, default empty) used to indicate the term for the
+                   tutorial in a multi-term course
         """
 
         # Start by getting the timeslots
@@ -355,9 +365,13 @@ class CourseTutorialManager(models.Manager):
                     is_first = first,
                     is_last = last
             )
+            if term:
+                tut.set_term(term)
+            else:
+                tut.set_term()
+            # Once we're passed the first iteration, set first to false
             if first:
                 first = False
-            tut.save()
 
     def get_tutorials_by_string(self,ts_string):
         """ Gets the current time slot using the given string. Currently only
@@ -396,7 +410,12 @@ class CourseTutorial(models.Model):
             related_name="tutorials", 
             null=True,
             blank=True)
-    objects = CourseTutorialManager()
+    objects  = CourseTutorialManager()
+    term     = models.CharField(
+        max_length = 1,
+        choices = settings.TERM_CHOICES,
+        default = 'F'
+    )
 
     # Since a single tutorial will typically have multiple associate timeslots,
     # the next two methods determine if that timeslot is the first or last. This
@@ -473,6 +492,18 @@ class CourseTutorial(models.Model):
         for tut in other_tuts:
             tut.ta = None
             tut.save()
+
+    def set_term(self, term=''):
+        """ Sets the term on the model object. Takes optional argument 'term'
+        whose default is ''. If empty, the tutorial has the same term as the
+        course to whic it's assigned.
+        """
+        if term:
+            self.term = term
+        else:
+            self.term = self.course.term
+
+        self.save()
 
     class Meta:
         verbose_name = "Tutorial"
