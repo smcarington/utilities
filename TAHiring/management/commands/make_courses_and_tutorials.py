@@ -9,7 +9,7 @@ import logging
 
 class Command(BaseCommand):
     """ A command for uploading marks. Expects a comma separated list
-        student_number, score
+        course_code, meeting, dow, start, end, term
     """
 
     def add_arguments(self, parser):

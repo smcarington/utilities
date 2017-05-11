@@ -37,7 +37,7 @@ def generate_course_review_table(course, tutorials, tas):
 
     DAYS, HOURS = hf.generate_days_and_time()
 
-    jeturn {
+    return {
             'times'   : HOURS,
             'days'    : DAYS,
             'tutorials': tutorials,

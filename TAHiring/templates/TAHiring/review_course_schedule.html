@@ -36,6 +36,10 @@
     <button id="toggleTAs" class="btn btn-default right">Toggle TAs</button>
 {% endblock %}
 
+{% block sidenote %}
+    {% include 'TAHiring/review_schedule_instructions.html' %}
+{% endblock %}
+
 {% block script %}
     <script>
         // Set the course cookie on unload
